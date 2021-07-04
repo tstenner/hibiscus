@@ -28,8 +28,6 @@ jobs:
         repository: ruderphilipp/jmc.git
         ref: main
     - name: Check out the triggering repository
-      # see <https://stackoverflow.com/q/63795736>
-      working-directory: ./hibiscus
       run: |
          declare -A SUBMODULES=( \
             [jameica]=jameica \
@@ -56,8 +54,6 @@ jobs:
     - name: Build with Gradle
       run: gradle build test
     - name: upload package
-      # create packages only on push events
-      if: ${{ github.event_name == 'push' }}
       uses: actions/upload-artifact@master
       with:
         name: pkg
