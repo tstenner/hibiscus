@@ -31,11 +31,23 @@ jobs:
       # see <https://stackoverflow.com/q/63795736>
       working-directory: ./hibiscus
       run: |
-        # fetch heads for push actions
-        git fetch --force ${{ github.event.repository.git_url }} "+refs/heads/*:refs/remotes/origin/*"
-        # fetch heads for pull requests
-        git fetch --force ${{ github.event.repository.git_url }} "+refs/pull/*/head:refs/remotes/origin/pr/*"
-        git checkout ${{ github.sha }} || git checkout ${{ github.event.pull_request.head.sha }}
+         declare -A SUBMODULES=( \
+            [jameica]=jameica \
+            [datasource]=lib/datasource \
+            [util]=lib/util \
+            [example]=plugins/example \
+            [hibiscus]=plugins/hibiscus \
+            )
+
+         set -x
+         REPONAME=${GITHUB_REPOSITORY#*/}
+         if [ ${REPONAME} = "jmc" ]; then
+            echo "Github Actions run started from this repository"
+         else
+            git -C ${SUBMODULES[$REPONAME]} remote add action_repo git@github.com:${GITHUB_REPOSITORY}
+            git -C ${SUBMODULES[$REPONAME]} fetch action_repo ${GITHUB_SHA}
+            git -C ${SUBMODULES[$REPONAME]} checkout ${GITHUB_SHA}
+         fi
     - name: Set up JDK
       uses: actions/setup-java@v2
       with:
@@ -49,4 +61,4 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: pkg
-        path: 'hibiscus/build/target/*.jar'
+        path: 'plugins/hibiscus/build/target/*.jar'
