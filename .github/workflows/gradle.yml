@@ -3,11 +3,19 @@
 
 name: Java CI with Gradle
 
+# Trigger on Push and pull requests
+# but only if relevant code changes
 on:
   push:
-    branches: '*'
-  pull_request:
     branches: [ main ]
+    paths:
+      - '**.java'
+      - '**.gradle'
+  pull_request:
+    branches: '*'
+    paths:
+      - '**.java'
+      - '**.gradle'
 
 jobs:
   build:
@@ -20,34 +28,25 @@ jobs:
         repository: ruderphilipp/jmc.git
         ref: main
     - name: Check out the triggering repository
+      # see <https://stackoverflow.com/q/63795736>
+      working-directory: ./hibiscus
       run: |
-         declare -A SUBMODULES=( \
-            [jameica]=jameica \
-            [datasource]=lib/datasource \
-            [util]=lib/util \
-            [example]=plugins/example \
-            [hibiscus]=plugins/hibiscus \
-            )
-
-         set -x
-         REPONAME=${GITHUB_REPOSITORY#*/}
-         if [ ${REPONAME} = "jmc" ]; then
-            echo "Github Actions run started from this repository"
-         else
-            git -C ${SUBMODULES[$REPONAME]} remote add action_repo git@github.com:${GITHUB_REPOSITORY}
-            git -C ${SUBMODULES[$REPONAME]} fetch action_repo ${GITHUB_SHA}
-            git -C ${SUBMODULES[$REPONAME]} checkout ${GITHUB_SHA}
-         fi
-    - name: Set up JDK 11
+        # fetch heads for push actions
+        git fetch --force ${{ github.event.repository.git_url }} "+refs/heads/*:refs/remotes/origin/*"
+        # fetch heads for pull requests
+        git fetch --force ${{ github.event.repository.git_url }} "+refs/pull/*/head:refs/remotes/origin/pr/*"
+        git checkout ${{ github.sha }} || git checkout ${{ github.event.pull_request.head.sha }}
+    - name: Set up JDK
       uses: actions/setup-java@v2
       with:
-        java-version: '11'
+        java-version: '8'
         distribution: 'adopt'
     - name: Build with Gradle
-      run: gradle build
+      run: gradle build test
     - name: upload package
+      # create packages only on push events
+      if: ${{ github.event_name == 'push' }}
       uses: actions/upload-artifact@master
       with:
         name: pkg
-        path: 'jameica/build/gradle/distributions/*.zip'
-
+        path: 'hibiscus/build/target/*.jar'
