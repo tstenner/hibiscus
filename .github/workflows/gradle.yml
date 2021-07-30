@@ -39,12 +39,15 @@ jobs:
 
          set -x
          REPONAME=${GITHUB_REPOSITORY#*/}
+         SUBREPOPATH=${SUBMODULES[$REPONAME]}
+         echo "SUBREPOPATH=${SUBREPOPATH}" >> $GITHUB_ENV
+
          if [ ${REPONAME} = "jmc" ]; then
             echo "Github Actions run started from this repository"
          else
-            git -C ${SUBMODULES[$REPONAME]} remote add action_repo git@github.com:${GITHUB_REPOSITORY}
-            git -C ${SUBMODULES[$REPONAME]} fetch action_repo ${GITHUB_SHA}
-            git -C ${SUBMODULES[$REPONAME]} checkout ${GITHUB_SHA}
+            git -C ${SUBREPOPATH} remote add action_repo git@github.com:${GITHUB_REPOSITORY}
+            git -C ${SUBREPOPATH} fetch action_repo ${GITHUB_SHA}
+            git -C ${SUBREPOPATH} checkout ${GITHUB_SHA}
          fi
     - name: Set up JDK
       uses: actions/setup-java@v2
@@ -53,8 +56,10 @@ jobs:
         distribution: 'adopt'
     - name: Build with Gradle
       run: gradle build test
+    - name: Copy build artifacts
+      run: mkdir artifacts; cp -v ${SUBREPOPATH}/build/target/*.jar artifacts/
     - name: upload package
       uses: actions/upload-artifact@master
       with:
         name: pkg
-        path: 'plugins/hibiscus/build/target/*.jar'
+        path: 'artifacts/*'
