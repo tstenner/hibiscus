@@ -3,11 +3,19 @@
 
 name: Java CI with Gradle
 
+# Trigger on Push and pull requests
+# but only if relevant code changes
 on:
   push:
-    branches: '*'
-  pull_request:
     branches: [ main ]
+    paths:
+      - '**.java'
+      - '**.gradle'
+  pull_request:
+    branches: '*'
+    paths:
+      - '**.java'
+      - '**.gradle'
 
 jobs:
   build:
@@ -47,7 +55,7 @@ jobs:
         java-version: '8'
         distribution: 'adopt'
     - name: Build with Gradle
-      run: gradle build
+      run: gradle build test
     - name: Copy build artifacts
       run: mkdir artifacts; cp -v ${SUBREPOPATH}/build/target/*.jar artifacts/
     - name: upload package
@@ -55,4 +63,3 @@ jobs:
       with:
         name: pkg
         path: 'artifacts/*'
-
